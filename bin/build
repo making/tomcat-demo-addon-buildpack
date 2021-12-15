@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+green=`tput -T xterm setaf 2`
+yellow=`tput -T xterm setaf 3`
+blue=`tput -T xterm setaf 4`
+bold=`tput -T xterm bold`
+italic=`tput -T xterm sitm`
+dim=`tput -T xterm dim`
+reset=`tput -T xterm sgr0`
+
+layers_dir="$1"
+env_dir="$2/env"
+plan_path="$3"
+buildpack_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
+buildpack_version=$(cat ${buildpack_dir}/buildpack.toml | grep version | head -1 | tr -d '"' | tr -d ' ' | awk -F '=' '{print $2}')
+
+echo "${blue}${bold}Tomcat Demo Addon Buildpack${reset} ${blue}${buildpack_version}${reset}"
+echo "  ${blue}${italic}${dim}https://github.com/making/tomcat-demo-addon-buildpack${reset}"
+tomcat_addon_layer=${layers_dir}/tomcat-demo-addon
+mkdir -p ${tomcat_addon_layer}/env.launch
+echo -n "  ${blue}Tomcat Demo Addon${reset}: "
+echo "${yellow}Contributing${reset} to layer"
+echo "    ${dim}Copying assets to ${tomcat_addon_layer}${reset}"
+cp ${buildpack_dir}/assets/banner.txt ${tomcat_addon_layer}
+cp ${buildpack_dir}/assets/tomcat-starter.sh ${tomcat_addon_layer}
+chmod +x ${tomcat_addon_layer}/tomcat-starter.sh
+echo "    ${dim}Writing env.launch/_RUNJAVA.override${reset}"
+echo -n "${tomcat_addon_layer}/tomcat-starter.sh" > ${tomcat_addon_layer}/env.launch/_RUNJAVA.override
+
+cat <<EOF > ${tomcat_addon_layer}.toml
+cache = true
+launch = true
+EOF
+
+cat <<EOF > ${layers_dir}/launch.toml
+[[bom]]
+name = "tomcat-demo-addon"
+EOF
